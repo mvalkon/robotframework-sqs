@@ -37,7 +37,7 @@ class SQSClient(object):
 
     def inspect_queue(self):
         """ Inspects a queue and returns whether or not the queue is empty """
-        return SQS.is_empty(self._queue.attributes)
+        return SQSClient.is_empty(self._queue.attributes)
 
     def purge(self):
         """ Clears a queue ``queue_name`` of ALL messages. This action is
