@@ -31,7 +31,7 @@ class SQS(object):
         and returns True when the value is 0 or if the attribute is not found.
         """
         approx = sum(int(queue_attrs.get(m, '0')) for m in [
-            'ApproxmiateNumberOfMessages',
+            'ApproximateNumberOfMessages',
             'ApproximateNumberOfMessagesNotVisible'])
         return True if approx == 0 else False
 
