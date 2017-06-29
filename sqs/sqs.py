@@ -6,7 +6,7 @@ from botocore.client import Config
 AWS_REGION = 'eu-central-1'
 
 
-class SQS(object):
+class SQSClient(object):
     """
     Implements a subset of operations for the AWS SQS
     """
