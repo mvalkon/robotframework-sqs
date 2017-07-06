@@ -18,12 +18,21 @@ class SQSClient(object):
                 config=Config(signature_version='s3v4'),
                 region_name=AWS_REGION)
         self._queue = self._get_queue(queue_name)
+        self._queue_name = queue_name
+        self._queue_url = self._queue.meta.client.get_queue_url(
+                QueueName=self.name).get('QueueUrl')
 
-    def _get_queue(self, queue_name, region='eu-central-1'):
+    @property
+    def name(self):
+        return self._queue_name
+
+    @property
+    def url(self):
+        return self._queue_url
+
+    def _get_queue(self, queue_name):
         """ Returns a queue from ``region`` with ``queue_name`` """
-        return self._resource.Queue(
-            url='https://sqs.{}.amazonaws.com/882181966078/{}'.format(
-                region, queue_name))
+        return self._resource.get_queue_by_name(QueueName=queue_name)
 
     @staticmethod
     def is_empty(queue_attrs):
@@ -35,9 +44,19 @@ class SQSClient(object):
             'ApproximateNumberOfMessagesNotVisible'])
         return True if approx == 0 else False
 
-    def inspect_queue(self):
+    def inspect_queue(self, attribute_names=None):
         """ Inspects a queue and returns whether or not the queue is empty """
-        return SQSClient.is_empty(self._queue.attributes)
+        if not attribute_names:
+            attribute_names = ['All']
+
+        client = self._queue.meta.client
+
+        return SQSClient.is_empty(
+                client.get_queue_attributes(
+                    QueueUrl=self.url,
+                    AttributeNames=attribute_names
+                    ).get('Attributes')
+                )
 
     def purge(self):
         """ Clears a queue ``queue_name`` of ALL messages. This action is
