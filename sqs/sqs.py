@@ -17,7 +17,7 @@ class SQSClient(object):
                 'sqs',
                 config=Config(signature_version='s3v4'),
                 region_name=AWS_REGION)
-        self._queue = self._get_queue(queue_name)
+        self._queue = self.__get_queue(queue_name)
         self._queue_name = queue_name
         self._queue_url = self._queue.meta.client.get_queue_url(
                 QueueName=self.name).get('QueueUrl')
@@ -30,14 +30,16 @@ class SQSClient(object):
     def url(self):
         return self._queue_url
 
-    def _get_queue(self, queue_name):
+    def __get_queue(self, queue_name):
         """ Returns a queue from ``region`` with ``queue_name`` """
         return self._resource.get_queue_by_name(QueueName=queue_name)
 
     @staticmethod
-    def is_empty(queue_attrs):
-        """Checks for the ``ApproxmiateNumberOfMessages`` in the queue attributes
-        and returns True when the value is 0 or if the attribute is not found.
+    def __is_empty(queue_attrs):
+        """Returns true if the queue is determined to be empty, otherwise
+        False. To determine whether or not the queue is empty, we look at the
+        attributes named ``ApproximateNumberOfMessages`` and
+        ``ApproxmiateNumberOfMessagesNotVisible``.
         """
         approx = sum(int(queue_attrs.get(m, '0')) for m in [
             'ApproximateNumberOfMessages',
@@ -58,7 +60,7 @@ class SQSClient(object):
                     ).get('Attributes')
                 )
 
-    def purge(self):
+    def purge_queue(self):
         """ Clears a queue ``queue_name`` of ALL messages. This action is
         not reversable """
         self._queue.purge()
