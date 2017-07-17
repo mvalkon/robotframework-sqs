@@ -34,41 +34,58 @@ class SQSClient(object):
         """ Returns a queue from ``region`` with ``queue_name`` """
         return self._resource.get_queue_by_name(QueueName=queue_name)
 
-    @staticmethod
-    def __is_empty(queue_attrs):
-        """Returns true if the queue is determined to be empty, otherwise
-        False. To determine whether or not the queue is empty, we look at the
-        attributes named ``ApproximateNumberOfMessages`` and
-        ``ApproxmiateNumberOfMessagesNotVisible``.
+    def __get_attributes(self, attribute_names=None):
+        """ Dynamically fetches new attributes for the queue. If
+        ``attribute_names`` is not provided, we fetch all attributes.
         """
-        approx = sum(int(queue_attrs.get(m, '0')) for m in [
-            'ApproximateNumberOfMessages',
-            'ApproximateNumberOfMessagesNotVisible'])
-        return True if approx == 0 else False
-
-    def inspect_queue(self, attribute_names=None):
-        """ Inspects a queue and returns whether or not the queue is empty """
         if not attribute_names:
             attribute_names = ['All']
 
+        if not isinstance(attribute_names, list):
+            attribute_names = [attribute_names]
+
         client = self._queue.meta.client
 
-        return SQSClient.is_empty(
-                client.get_queue_attributes(
+        return client.get_queue_attributes(
                     QueueUrl=self.url,
                     AttributeNames=attribute_names
                     ).get('Attributes')
-                )
+
+
+    def __get_no_of_all_messages(self):
+        """
+        Returns the number of both available and in-flight messages
+        """
+        queue_attrs = self.__get_attributes(attribute_names=[
+            'ApproximateNumberOfMessages',
+            'ApproximateNumberOfMessagesNotVisible'])
+        return sum(int(x) for x in queue_attrs.values())
 
     def purge_queue(self):
-        """ Clears a queue ``queue_name`` of ALL messages. This action is
+        """ Clears the queue of ALL messages. This action is
         not reversable """
         self._queue.purge()
 
-    def queue_should_be(self, empty):
-        """ Asserts that the queue is either empty or not """
-        expected = True if empty == 'empty' else False
-        actual = self.inspect_queue()
-        if actual != expected:
-            raise AssertionError("Expected the queue to be {} but, got {}".format(
-                empty, actual))
+    def queue_should_be_empty(self):
+        """ Asserts that the queue is empty """
+        if self.__get_no_of_all_messages() > 0:
+            raise AssertionError("The queue was not empty")
+
+    def queue_should_not_be_empty(self):
+        """ Asserts that the queue is not empty """
+        if self.__get_no_of_all_messages() == 0:
+            raise AssertionError("The queue was empty")
+
+    def get_number_of_in_flight_messages_in_queue(self):
+        """
+        Returns the number of in flight messages in the queue
+        """
+        key = "ApproximateNumberOfMessagesNotvisible"
+        return int(self.__get_attributes(attribute_names=[key]).get(key))
+
+    def get_number_of_available_messages_in_queue(self):
+        """
+        Returns the number of visible messages in the queue
+        """
+        key = 'ApproximateNumberOfMessages'
+        return int(self.__get_attributes(attribute_names=key).get(key))
