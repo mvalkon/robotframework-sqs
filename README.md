@@ -6,14 +6,14 @@ Install the library by cloning the repository and use `pip` to install.
 
 ```bash
 $ git clone https://github.com/mvalkon/robotframework-sqs
-$ pip install .
+$ cd robotframework-sqs && pip install .
 ```
 
 ## How to use
 Import the library in your test case, and pass your SQS Queue name as `queue_name`, like so:
 
 ```RobotFramework
-*** Settings *** 
+*** Settings ***
 Library     sqs.sqs.SQSClient   queue_name
 ```
 
